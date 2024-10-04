@@ -4,19 +4,25 @@ type User {
     email: String!
 }
 
-type Query {
-    users: [User!]!
-    user(id: ID!): User
+type UserResponse {
+    success: Boolean!
+    message: String
+    users: [User]
 }
 
-type UserResponse {
+type Query {
+    users: UserResponse!
+    user(id: ID!): UserResponse!
+}
+
+type UpdatedUserResponse {
   success: Boolean!
   message: String
   user: User
 }
 
 type AuthResponse {
-  message: String
+  success: Boolean!
   token: String
 }
 
@@ -34,5 +40,5 @@ input UserInput {
 type Mutation {
     registerUser(input: RegisterInput!): User!
     loginUser(input: UserInput!): AuthResponse!
-    updateUser(userId: ID!, firstName: String, lastName: String, email: String): UserResponse!
+    updateUser(user_id: ID!, user_name: String, email: String): UpdatedUserResponse!
 }
