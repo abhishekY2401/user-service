@@ -82,9 +82,12 @@ def handle_user_registration(_, info, input):
     email = input.get('email')
     username = input.get('username')
     password = input.get('password')
+    address = input.get('address'),
+    contact = input.get('contact')
 
-    if not email or not password or not username:
-        raise Exception("Email, username and password is required")
+    if not email or not password or not username or not address or not contact:
+        raise Exception(
+            "Email, username, password, address and contact is required")
 
     try:
         if User.query.filter_by(email=email).first():
@@ -94,7 +97,7 @@ def handle_user_registration(_, info, input):
             bcrypt.generate_password_hash(password).decode('utf-8')
         )
         new_user = User(username=username, email=email,
-                        password=hashed_password)
+                        password=hashed_password, address=address, contact=contact)
         logging.info(f"new user created: {str(new_user)}")
 
         db.session.add(new_user)
@@ -105,9 +108,11 @@ def handle_user_registration(_, info, input):
             "user_id": new_user.id,
             "username": new_user.username,
             "email": new_user.email,
-            "timestamp": str(datetime.now().astimezone(timezone.utc))
+            "address": new_user.address,
+            "contact": new_user.contact,
         })
-        publish_event(Config.USER_REGISTERED_QUEUE, event_data)
+        publish_event(exchange_name="event_exchange",
+                      routing_key=Config.USER_REGISTERED_QUEUE, message=event_data)
 
         return new_user
 
@@ -145,7 +150,7 @@ def handle_user_authentication(_, info, input):
 
 @mutation.field("updateUser")
 @jwt_required
-def handle_user_update(_, info, user_id, user_name=None, email=None):
+def handle_user_update(_, info, user_id, user_name=None, email=None, password=None, address=None, contact=None):
     try:
         # Firstly to update a user, find the user by its ID
         user = User.query.get(user_id)
@@ -160,18 +165,29 @@ def handle_user_update(_, info, user_id, user_name=None, email=None):
             user.username = user_name
         if email:
             user.email = email
+        if password:
+            user.password = bcrypt.generate_password_hash(
+                password).decode('utf-8')
+        if address:
+            user.address = address
+        if contact:
+            user.contact = contact
 
         # Commit the changes to the db
         db.session.commit()
 
         # publish an event to the queue
         updated_event_data = json.dumps({
+            "event": Config.USER_PROFILE_UPDATED_QUEUE,
             "user_id": user.id,
             "username": user.username,
             "email": user.email,
+            "address": user.address,
+            "contact": user.contact,
             "updated_timestamp": str(datetime.now().astimezone(timezone.utc))
         })
-        publish_event(Config.USER_PROFILE_UPDATED_QUEUE, updated_event_data)
+        publish_event(exchange_name="event_exchange",
+                      routing_key=Config.USER_PROFILE_UPDATED_QUEUE, message=updated_event_data)
 
         return {
             "success": True,
