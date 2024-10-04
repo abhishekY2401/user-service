@@ -11,7 +11,7 @@ class Config:
         f'postgresql://postgres:{DB_PASSWORD}@localhost:5432/users_db'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'supersecretkey')
+    JWT_SECRET_KEY = os.environ['JWT_SECRET_KEY']
     USER_REGISTERED_QUEUE = 'user.registered'
     USER_PROFILE_UPDATED_QUEUE = 'user.profile.updated'
 
