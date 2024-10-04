@@ -1,9 +1,10 @@
 import json
 import logging
-from datetime import datetime, timezone
+import jwt
+from datetime import datetime, timezone, timedelta
 from app.rabbitmq import publish_event
 from ariadne import QueryType, MutationType
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from app.middleware import jwt_required
 from app.extensions import db, bcrypt
 from app.models import User
 from config import Config
@@ -11,31 +12,67 @@ from config import Config
 query = QueryType()
 mutation = MutationType()
 
+
+def generate_jwt(user):
+    payload = {
+        'user_id': user.id,
+        'exp': datetime.now().astimezone(timezone.utc) + timedelta(hours=1)
+    }
+    token = jwt.encode(
+        payload, Config.JWT_SECRET_KEY, algorithm='HS256'
+    )
+    logging.info(f"created user token: {token}")
+    return token
+
 # fetch all the users stored in database
 
 
 @query.field("users")
-def fetch_users():
+@jwt_required
+def fetch_users(*_):
     try:
         users = User.query.all()
-        return [{"id": user.id, "username": user.username, "email": user.email, "total_orders": user.total_orders, "last_order_date": user.last_order_date, "total_spent": user.total_spent, "created": user.created_at, "updated": user.updated_at} for user in users]
-    except Exception as e:
-        logging.error(f"Error fetching users: {e}")
-        return []
+        logging.info(f"users fetched successfully: {users}")
+
+        # Serialize the users
+        user_list = [user.to_dict() for user in users]
+        logging.info(f"serialized all the users: {user_list}")
+
+        return {
+            "success": True,
+            "message": "Users fetched successfully.",
+            "users": user_list
+        }
+    except Exception as error:
+        logging.error(f"Error fetching users: {error}")
+        return {
+            "success": False,
+            "message": str(error),
+            "users": []
+        }
 
 # fetch a user by its id
 
 
 @query.field("user")
+@jwt_required
 def fetch_user(_, info, id):
     try:
         user = User.query.get(id)
         if not user:
             raise Exception(f"User with id {id} not found")
-        return user
-    except Exception as e:
-        logging.error(f"Error while fetching user: {e}")
-        return None
+        return {
+            "success": True,
+            "message": "User fetched successfully.",
+            "users": [user]
+        }
+    except Exception as error:
+        logging.error(f"Error while fetching user: {error}")
+        return {
+            "success": False,
+            "message": str(error),
+            "users": []
+        }
 
 # handle user registration
 
@@ -93,12 +130,12 @@ def handle_user_authentication(_, info, input):
             raise Exception("Invalid email or password.")
 
         # generate jwt token
-        access_token = create_access_token(identity=user.id)
+        token = generate_jwt(user)
         logging.info(f"create new access token for user: {user.id}")
 
         return {
-            "message": "Login successful",
-            "token": access_token
+            "success": True,
+            "token": token
         }
 
     except Exception as e:
@@ -107,10 +144,11 @@ def handle_user_authentication(_, info, input):
 
 
 @mutation.field("updateUser")
-def handle_user_update(_, info, userId, firstName=None, lastName=None, email=None):
+@jwt_required
+def handle_user_update(_, info, user_id, user_name=None, email=None):
     try:
         # Firstly to update a user, find the user by its ID
-        user = User.query.get(userId)
+        user = User.query.get(user_id)
         if not user:
             return {
                 "success": False,
@@ -118,15 +156,12 @@ def handle_user_update(_, info, userId, firstName=None, lastName=None, email=Non
                 "user": None
             }
 
-        # Update fields if provided
-        if firstName:
-            user.first_name = firstName
-        if lastName:
-            user.last_name = lastName
+        if user_name:
+            user.username = user_name
         if email:
             user.email = email
 
-        # Commit the changes to the database
+        # Commit the changes to the db
         db.session.commit()
 
         # publish an event to the queue
@@ -143,10 +178,10 @@ def handle_user_update(_, info, userId, firstName=None, lastName=None, email=Non
             "message": "User updated successfully",
             "user": user
         }
-    except Exception as e:
+    except Exception as error:
         db.session.rollback()  # Rollback to previous state in case of error
         return {
             "success": False,
-            "message": str(e),
+            "message": str(error),
             "user": None
         }
