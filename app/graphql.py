@@ -2,8 +2,6 @@ from flask import request, jsonify
 from ariadne import load_schema_from_path, make_executable_schema, graphql_sync
 from ariadne.explorer.apollo import APOLLO_HTML
 from app.resolvers import query, mutation
-from flask_jwt_extended import jwt_required
-from app.middleware import jwt_auth_middleware
 import logging
 
 # Load the schema and create the executable schema
@@ -18,7 +16,6 @@ def graphql_server():
         schema,
         data,
         context_value=request,
-        # middleware=[jwt_auth_middleware],
         debug=True
     )
 
