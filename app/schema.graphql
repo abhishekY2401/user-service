@@ -2,6 +2,8 @@ type User {
     id: ID!
     username: String!
     email: String!
+    address: String 
+    contact: String
 }
 
 type UserResponse {
@@ -30,6 +32,8 @@ input RegisterInput {
     username: String!
     email: String!
     password: String!
+    address: String 
+    contact: String 
 }
 
 input UserInput {
@@ -40,5 +44,5 @@ input UserInput {
 type Mutation {
     registerUser(input: RegisterInput!): User!
     loginUser(input: UserInput!): AuthResponse!
-    updateUser(user_id: ID!, user_name: String, email: String): UpdatedUserResponse!
+    updateUser(user_id: ID!, user_name: String, email: String, password: String, address: String, contact: String): UpdatedUserResponse!
 }
