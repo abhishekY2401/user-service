@@ -33,7 +33,7 @@ Before setting up the microservice, ensure the following are installed:
 
 ### 1. Clone the Repository
     
-    git clone https://github.com/yourusername/microservice-project.git
+    git clone https://github.com/abhishekY2401/user-service.git
     cd user-service
     
 
