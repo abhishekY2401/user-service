@@ -1,20 +1,20 @@
 type User {
-    id: ID!
-    username: String!
-    email: String!
-    address: String 
-    contact: String
+  id: ID!
+  username: String!
+  email: String!
+  address: String
+  contact: String
 }
 
 type UserResponse {
-    success: Boolean!
-    message: String
-    users: [User]
+  success: Boolean!
+  message: String
+  users: [User]
 }
 
 type Query {
-    users: UserResponse!
-    user(id: ID!): UserResponse!
+  users: UserResponse!
+  user(id: ID!): UserResponse!
 }
 
 type UpdatedUserResponse {
@@ -29,20 +29,27 @@ type AuthResponse {
 }
 
 input RegisterInput {
-    username: String!
-    email: String!
-    password: String!
-    address: String 
-    contact: String 
+  username: String!
+  email: String!
+  password: String!
+  address: String
+  contact: String
 }
 
 input UserInput {
-    email: String!
-    password: String!
+  email: String!
+  password: String!
 }
 
 type Mutation {
-    registerUser(input: RegisterInput!): User!
-    loginUser(input: UserInput!): AuthResponse!
-    updateUser(user_id: ID!, user_name: String, email: String, password: String, address: String, contact: String): UpdatedUserResponse!
+  registerUser(input: RegisterInput!): User!
+  loginUser(input: UserInput!): AuthResponse!
+  updateUser(
+    user_id: ID!
+    user_name: String
+    email: String
+    password: String
+    address: String
+    contact: String
+  ): UpdatedUserResponse!
 }
